@@ -1,2 +1,5 @@
+library for resolving float64 weight knapsack problems
+
 # unbounded-knapsack
-library for resolving vanilla unbounded knapsack problem
+# bounded-knapsack
+## one-zero knapsack
