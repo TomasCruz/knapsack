@@ -1,73 +1,102 @@
 package knapsack
 
+import (
+	"github.com/pkg/errors"
+)
+
 type boundedKnapsackItems struct {
-	knapsackItems
-	maxValues         []map[float64]float64
-	possibleCapacites map[float64]struct{}
-	itemCopies        int
+	knapsackItems []Item
+	maxValues     []map[float64]float64
+	itemCopies    []int
 }
 
-func constructBoundedKnapsackItems(benefits, weights []float64, itemCopies int, capacity float64) (
-	items knapsackEvaluator, err error) {
+func constructBoundedKnapsackItemsF(benefits, weights []float64, itemCopies []int) (
+	evaluator knapsackEvaluator, err error) {
 
-	boundedItems := boundedKnapsackItems{}
-	boundedItems.itemCopies = itemCopies
+	var boundedItems boundedKnapsackItems
+	if boundedItems, err = initItemCopiesAndMap(len(benefits), itemCopies); err != nil {
+		return
+	}
+
 	if boundedItems.knapsackItems, err = constructKnapsackItems(benefits, weights); err != nil {
 		return
 	}
 
-	boundedItems.possibleCapacites = make(map[float64]struct{})
-	boundedItems.possibleCapacites[capacity] = struct{}{}
+	evaluator = boundedItems
+	return
+}
 
-	itemCount := len(boundedItems.benefits)
+func constructBoundedKnapsackItems(items []Item, itemCopies []int) (
+	evaluator knapsackEvaluator, err error) {
+
+	var boundedItems boundedKnapsackItems
+	if boundedItems, err = initItemCopiesAndMap(len(items), itemCopies); err != nil {
+		return
+	}
+
+	if err = verifyKnapsackItems(items); err != nil {
+		return
+	}
+
+	boundedItems.knapsackItems = items
+
+	evaluator = boundedItems
+	return
+}
+
+func initItemCopiesAndMap(itemCount int, itemCopies []int) (
+	boundedItems boundedKnapsackItems, err error) {
+
+	if itemCopies == nil || len(itemCopies) != itemCount {
+		err = errors.New("Cardinalities of itemCopies and items must be equal")
+		return
+	}
+
+	boundedItems.itemCopies = itemCopies
+
 	boundedItems.maxValues = make([]map[float64]float64, itemCount)
-
 	for i := 0; i < itemCount; i++ {
 		boundedItems.maxValues[i] = make(map[float64]float64)
 	}
 
-	items = boundedItems
 	return
 }
 
-func (items boundedKnapsackItems) maxKnapsackValue(capacity float64) (maxKnapsackValue float64) {
-	return items.maxItemValuePerCapacity(len(items.benefits)-1, capacity)
+func (boundedItems boundedKnapsackItems) maxKnapsackValue(capacity float64) (maxKnapsackValue float64) {
+	return boundedItems.maxItemValuePerCapacity(len(boundedItems.knapsackItems)-1, capacity)
 }
 
 // maxItemValuePerCapacity returns max value per capacity, using items with indices up to itemIndex.
-func (items boundedKnapsackItems) maxItemValuePerCapacity(itemIndex int, capacity float64) (maxKnapsackValue float64) {
+func (boundedItems boundedKnapsackItems) maxItemValuePerCapacity(itemIndex int, capacity float64) (maxKnapsackValue float64) {
 	if itemIndex == -1 {
 		return 0
 	}
 
 	var ok bool
-	if maxKnapsackValue, ok = items.maxValues[itemIndex][capacity]; ok {
+	if maxKnapsackValue, ok = boundedItems.maxValues[itemIndex][capacity]; ok {
 		return
 	}
 
 	for i := 0; i <= itemIndex; i++ {
-		for w := range items.possibleCapacites {
-			maxCurrCapacityKnapsackValue := items.maxItemValuePerCapacity(i-1, w)
+		maxCurrCapacityKnapsackValue := boundedItems.maxItemValuePerCapacity(i-1, capacity)
 
-			for numberCopies := 1; numberCopies <= items.itemCopies; numberCopies++ {
-				itemCopiesWeight := float64(numberCopies) * items.weights[i]
-				if itemCopiesWeight > w {
-					break
-				}
-
-				items.possibleCapacites[w-itemCopiesWeight] = struct{}{}
-				itemValueAdded := items.maxItemValuePerCapacity(i-1, w-itemCopiesWeight) +
-					float64(numberCopies)*items.benefits[i]
-
-				if itemValueAdded > maxCurrCapacityKnapsackValue {
-					maxCurrCapacityKnapsackValue = itemValueAdded
-				}
+		for numberCopies := 1; numberCopies <= boundedItems.itemCopies[i]; numberCopies++ {
+			itemCopiesWeight := float64(numberCopies) * boundedItems.knapsackItems[i].weight
+			if itemCopiesWeight > capacity {
+				break
 			}
 
-			items.maxValues[i][w] = maxCurrCapacityKnapsackValue
+			itemValueAdded := boundedItems.maxItemValuePerCapacity(i-1, capacity-itemCopiesWeight) +
+				float64(numberCopies)*boundedItems.knapsackItems[i].benefit
+
+			if itemValueAdded > maxCurrCapacityKnapsackValue {
+				maxCurrCapacityKnapsackValue = itemValueAdded
+			}
 		}
+
+		boundedItems.maxValues[i][capacity] = maxCurrCapacityKnapsackValue
 	}
 
-	maxKnapsackValue = items.maxValues[itemIndex][capacity]
+	maxKnapsackValue = boundedItems.maxValues[itemIndex][capacity]
 	return
 }
