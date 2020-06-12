@@ -29,6 +29,22 @@ func zeroOneKnapsackData() (testData []testKnapsack) {
 		testKnapsack{
 			benefits:   []float64{24.71, 13.23, 15.23},
 			weights:    []float64{12.25, 0.7, 11.0009},
+			capacity:   0.69,
+			itemCopies: []int{1, 1, 1},
+			expected:   0,
+		},
+
+		testKnapsack{
+			benefits:   []float64{24.71, 13.23, 15.23},
+			weights:    []float64{12.25, 0.7, 11.0009},
+			capacity:   0.89,
+			itemCopies: []int{1, 1, 1},
+			expected:   13.23,
+		},
+
+		testKnapsack{
+			benefits:   []float64{24.71, 13.23, 15.23},
+			weights:    []float64{12.25, 0.7, 11.0009},
 			capacity:   100,
 			itemCopies: []int{1, 1, 1},
 			expected:   53.17,

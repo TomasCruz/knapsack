@@ -68,6 +68,14 @@ func boundedKnapsackData() (testData []testKnapsack) {
 			itemCopies: []int{1, 2, 2},
 			expected:   56.92,
 		},
+
+		testKnapsack{
+			benefits:   []float64{24.71, 13.23, 15.23},
+			weights:    []float64{12.25, 0.7, 11.0009},
+			capacity:   0.5,
+			itemCopies: []int{1, 2, 2},
+			expected:   0,
+		},
 	}
 
 	return
